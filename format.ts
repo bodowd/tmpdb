@@ -27,8 +27,8 @@
  *
  * */
 
-const HEADER_SIZE = 12;
-const KEY_DIR_ENTRY_SIZE = 12;
+export const HEADER_SIZE: number = 12;
+export const KEY_DIR_ENTRY_SIZE: number = 12;
 
 export interface KeyDirEntry {
   valueSize: number;
@@ -48,7 +48,7 @@ export interface KV {
   value: string;
 }
 
-export interface Record {
+export interface TmpdbRecord {
   header: Header;
   kv: KV;
 }
@@ -56,6 +56,7 @@ export interface Record {
 export const encodeKeyDirEntry = (
   timestamp: number,
   valueSize: number,
+  // this is the offset relative to the start of the database file
   valueOffset: number,
 ): Buffer => {
   const buf = Buffer.alloc(KEY_DIR_ENTRY_SIZE);
@@ -98,21 +99,29 @@ export const encodeRecord = (
   key: string,
   value: string,
 ): {
-  buffer: Buffer;
-  // the valueSize is needed to put into the KeyDir entry
+  record: Buffer;
+  // the valueOffset is needed to put into the KeyDir entry
+  // this is relative to this individual entry, not the start of the database file
+  // it is the headersize + keysize
+  // this is where the value starts
+  valueOffset: number;
+  // valueSize is needed in the keyDir entry to know how much to read after the
+  // valueOffset
   valueSize: number;
 } => {
   const keyBuffer = Buffer.from(key);
   const valueBuffer = Buffer.from(value);
   const header = encodeHeader(timestamp, keyBuffer.length, valueBuffer.length);
-  const data = Buffer.concat([Buffer.from(key), Buffer.from(value)]);
+  const kv = Buffer.concat([Buffer.from(key), Buffer.from(value)]);
+  const record = Buffer.concat([header, kv]);
   return {
-    buffer: Buffer.concat([header, data]),
+    record: record,
+    valueOffset: HEADER_SIZE + keyBuffer.length,
     valueSize: valueBuffer.length,
   };
 };
 
-export const decodeRecord = (buf: Buffer): Record => {
+export const decodeRecord = (buf: Buffer): TmpdbRecord => {
   const header = decodeHeader(buf);
 
   const key = buf

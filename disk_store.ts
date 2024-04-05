@@ -25,15 +25,16 @@ export class TmpDb {
   file: fs.FileHandle | undefined;
   keyDir: Map<string, Buffer>;
   // the current position in the file being written to
-  writePosition: number;
+  private writePosition: number;
   constructor(filename: string) {
     this.filename = filename;
     this.keyDir = new Map();
     this.writePosition = 0;
-    this.initialize();
   }
 
-  private async initialize(): Promise<void> {
+  // this function must be run by the user because I was not able to find a
+  // way to run this in the constructor with async
+  async initialize(): Promise<void> {
     try {
       const exists = await fileExists(this.filename);
       if (exists) {
@@ -55,21 +56,24 @@ export class TmpDb {
 
   set(key: string, value: string) {
     const timestamp = Math.floor(new Date().getTime() / 1000);
-    const record = encodeRecord(timestamp, key, value);
+    const res = encodeRecord(timestamp, key, value);
     if (this.file) {
       try {
         // first append to file and flush to disk
-        this.file.appendFile(record.buffer);
+        this.file.appendFile(res.record);
         this.file.sync();
 
         // update in memory hash map
         const entry = encodeKeyDirEntry(
           timestamp,
-          record.valueSize,
-          this.writePosition,
+          res.valueSize,
+          this.writePosition + res.valueOffset,
         );
         this.keyDir.set(key, entry);
-        this.writePosition += record.valueSize;
+        // advance the write position "pointer" the length of the new
+        // record which was written so that the next record will be written
+        // after this record's value
+        this.writePosition += res.record.length;
       } catch (error) {
         throw new Error("Error appending to file: " + error);
       }
