@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
     "@types/node": "^20.12.3",
     "typescript": "^5.4.3",
     "vitest": "^1.4.0"
