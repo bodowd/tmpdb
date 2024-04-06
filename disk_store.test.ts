@@ -13,7 +13,6 @@ import {
   TmpdbRecord,
   decodeKeyDirEntry,
   decodeRecord,
-  encodeRecord,
 } from "./format";
 
 const DB_FILE = "./tmp/tmpdb.db";
