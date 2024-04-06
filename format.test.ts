@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import {
   Header,
   decodeHeader,
+  decodeKeyDirEntry,
   decodeRecord,
   encodeHeader,
   encodeKeyDirEntry,
@@ -158,5 +159,25 @@ test("encodeKeyDirEntry", () => {
     expect(t.timestamp).toEqual(timestamp);
     expect(t.valueSize).toEqual(valueSize);
     expect(t.valueOffset).toEqual(valueOffset);
+  }
+});
+
+test("decodeKeyDirEntry", () => {
+  const tests = [
+    {
+      buffer: Buffer.from([
+        0x10, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00,
+      ]),
+      expectedTimestamp: 16,
+      expectedValueSize: 4,
+      expectedValueOffset: 17,
+    },
+  ];
+
+  for (const t of tests) {
+    const entry = decodeKeyDirEntry(t.buffer);
+    expect(entry.timestamp).toEqual(t.expectedTimestamp);
+    expect(entry.valueSize).toEqual(t.expectedValueSize);
+    expect(entry.valueOffset).toEqual(t.expectedValueOffset);
   }
 });

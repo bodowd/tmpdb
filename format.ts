@@ -66,6 +66,17 @@ export const encodeKeyDirEntry = (
   return buf;
 };
 
+export const decodeKeyDirEntry = (entry: Buffer): KeyDirEntry => {
+  const timestamp = entry.readUInt32LE(0);
+  const valueSize = entry.readUInt32LE(4);
+  const valueOffset = entry.readUInt32LE(8);
+  return {
+    timestamp: timestamp,
+    valueSize: valueSize,
+    valueOffset: valueOffset,
+  };
+};
+
 export const encodeHeader = (
   timestamp: number,
   keySize: number,

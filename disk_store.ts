@@ -1,5 +1,5 @@
 import * as fs from "node:fs/promises";
-import { encodeKeyDirEntry, encodeRecord } from "./format";
+import { decodeKeyDirEntry, encodeKeyDirEntry, encodeRecord } from "./format";
 
 export const fileExists = async (filename: string): Promise<boolean> => {
   try {
@@ -54,14 +54,14 @@ export class TmpDb {
     }
   }
 
-  set(key: string, value: string) {
+  async set(key: string, value: string) {
     const timestamp = Math.floor(new Date().getTime() / 1000);
     const res = encodeRecord(timestamp, key, value);
     if (this.file) {
       try {
         // first append to file and flush to disk
-        this.file.appendFile(res.record);
-        this.file.sync();
+        await this.file.appendFile(res.record);
+        await this.file.sync();
 
         // update in memory hash map
         const entry = encodeKeyDirEntry(
@@ -76,6 +76,38 @@ export class TmpDb {
         this.writePosition += res.record.length;
       } catch (error) {
         throw new Error("Error appending to file: " + error);
+      }
+    } else {
+      throw new Error("File is null");
+    }
+  }
+
+  async get(key: string): Promise<null | void | string> {
+    if (this.file) {
+      try {
+        // look into keyDir to find the offset in the db file of the value that belongs to this kv pair
+        const keyDirBuf = this.keyDir.get(key);
+        if (!keyDirBuf) {
+          return null;
+        }
+        const entry = decodeKeyDirEntry(keyDirBuf);
+
+        const buf = Buffer.alloc(entry.valueSize);
+        // read into $buf
+        // start filling $buf at 0
+        // read $valueSize bytes
+        // starting in the file at $valueOffset
+        const { buffer: readBuffer } = await this.file.read(
+          buf,
+          0,
+          entry.valueSize,
+          entry.valueOffset,
+        );
+        return readBuffer.toString();
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(error.message);
+        }
       }
     } else {
       throw new Error("File is null");
