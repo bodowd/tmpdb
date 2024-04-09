@@ -5,25 +5,33 @@ import * as fs from "node:fs/promises";
 import { KV } from "../format";
 
 const DB_FILE = "./tmp/tmpdb.db";
-const NUM: number = 1000;
+const NUM: number = 1000000;
 const cleanUp = async () => {
   await fs.rm(DB_FILE, { force: true });
 };
 
 const genData = () => {
+  const data = new Map<string, string>();
   const dataGenStart = performance.now();
-  let data: KV[] = [];
-  for (let i = 0; i < NUM; i++) {
-    const key = faker.person.firstName();
-    // const acct = faker.image.dataUri();
+  while (data.size < NUM) {
+    // const key = faker.person.firstName();
+    const key = faker.git.commitSha();
     const value = faker.finance.accountName();
-    data.push({ key: key, value: value });
+
+    // store unique keys so we don't have any updates
+    if (!data.has(key)) {
+      data.set(key, value);
+    }
   }
   const dataGenEnd = performance.now();
 
   console.log("DATA GEN (ms): ", dataGenEnd - dataGenStart);
 
-  return data;
+  let res = [];
+  for (const e of data.entries()) {
+    res.push({ key: e[0], value: e[1] });
+  }
+  return res;
 };
 
 const calcAvg = (times: number[]) => {
@@ -49,6 +57,14 @@ const setData = async (db: TmpDb, data: KV[]) => {
   console.log("TOTAL WRITE TIME (ms): ", end - start);
 };
 
+const setManyData = async (db: TmpDb, data: KV[]) => {
+  const start = performance.now();
+  await db.setMany(data);
+  const end = performance.now();
+  console.log("TIME PER ENTRY (ms): ", (end - start) / data.length);
+  console.log("TOTAL WRITE TIME TO SET MANY (ms): ", end - start);
+};
+
 const getData = async (db: TmpDb, data: KV[]) => {
   // measure getting data
   const errors = [];
@@ -57,8 +73,8 @@ const getData = async (db: TmpDb, data: KV[]) => {
   for (const d of data) {
     const startGetOne = performance.now();
     const val = await db.get(d.key);
-    if (!val) {
-      errors.push(val);
+    if (!val || d.value !== val) {
+      errors.push(d, val);
     }
     const endGetOne = performance.now();
     times.push(endGetOne - startGetOne);
@@ -72,13 +88,23 @@ const getData = async (db: TmpDb, data: KV[]) => {
 
 const main = async () => {
   await cleanUp();
-  const db = new TmpDb(DB_FILE);
+  let db = new TmpDb(DB_FILE);
   await db.initialize();
 
   console.log(`RUNNING ${NUM} SAMPLES`);
 
   const data = genData();
+
+  console.log("measure set one by one");
   await setData(db, data);
+  await getData(db, data);
+
+  console.log("cleaning up and now running setMany");
+  await cleanUp();
+  db = new TmpDb(DB_FILE);
+  await db.initialize();
+
+  await setManyData(db, data);
   await getData(db, data);
 };
 
