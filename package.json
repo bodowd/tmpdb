@@ -2,11 +2,15 @@
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
     "@types/node": "^20.12.3",
+    "prisma": "^5.12.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3",
     "vitest": "^1.4.0"
   },
   "scripts": {
     "test": "vitest"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.12.1"
   }
 }
