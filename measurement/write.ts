@@ -2,7 +2,7 @@ import { performance } from "node:perf_hooks";
 import { faker } from "@faker-js/faker";
 import { TmpDb } from "../disk_store";
 import * as fs from "node:fs/promises";
-import { KV, decodeKeyDirEntry } from "../format";
+import { KV } from "../format";
 
 const DB_FILE = "./tmp/tmpdb.db";
 const NUM: number = 1000;
