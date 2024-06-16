@@ -60,7 +60,7 @@ export class TmpDb {
     }
   }
 
-  async set(key: string, value: string) {
+  async set(key: string, value: string): Promise<void> {
     const timestamp = Math.floor(new Date().getTime() / 1000);
     const res = encodeRecord(timestamp, key, value);
     if (this.file) {
@@ -90,7 +90,7 @@ export class TmpDb {
 
   // fill a buffer with batches of key value pairs and then sync a bunch of
   // pairs rather than sync after every append
-  async setMany(kvPairs: KV[]) {
+  async setMany(kvPairs: KV[]): Promise<void> {
     if (this.file) {
       // fill buffer up to BYTE_LENGTH and then sync to disk
       const BYTE_LENGTH = 100000;
