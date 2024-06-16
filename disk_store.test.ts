@@ -8,7 +8,13 @@ import {
   test,
 } from "vitest";
 import { TmpDb, fileExists } from "./disk_store";
-import { HEADER_SIZE, TmpdbRecord, decodeRecord, encodeRecord } from "./format";
+import {
+  HEADER_SIZE,
+  TmpdbRecord,
+  decodeKeyDirEntry,
+  decodeRecord,
+  encodeRecord,
+} from "./format";
 
 const DB_FILE = "./tmp/tmpdb.db";
 
@@ -24,8 +30,9 @@ const checkDisk = async (
   const buf = Buffer.alloc(HEADER_SIZE + keySize + valSize);
   const { bytesRead, buffer: readBuffer } = await fd.read(
     buf,
-    offset,
+    0,
     buf.length,
+    offset,
   );
   await fd.close();
   return {
@@ -76,7 +83,7 @@ describe("sets a key value", () => {
   test("the key value is found in the db file", async () => {
     const db = new TmpDb(DB_FILE);
     await db.initialize();
-    db.set("hello", "test");
+    await db.set("hello", "test");
     // this is the first value being written so the offset is at 0
     // should read the length of record, which is the buffer length
     // that was allocated
@@ -93,7 +100,7 @@ describe("sets a key value", () => {
   test("the corresponding keyDir entry is found", async () => {
     const db = new TmpDb(DB_FILE);
     await db.initialize();
-    db.set("found", "yes");
+    await db.set("found", "yes");
 
     expect(db.keyDir.get("found")).toBeDefined();
     // make sure this key is not found
@@ -103,12 +110,12 @@ describe("sets a key value", () => {
   test("database file is appended to", async () => {
     const db = new TmpDb(DB_FILE);
     await db.initialize();
-    db.set("hello", "test");
+    await db.set("hello", "test");
     const stats1 = await db.file?.stat();
     expect(stats1?.size).toEqual(21);
 
     // after adding 21 one more bytes, file size should increase to 42
-    db.set("name", "tmpdb");
+    await db.set("name", "tmpdb");
     const stats2 = await db.file?.stat();
     expect(stats2?.size).toEqual(42);
   });
@@ -116,7 +123,7 @@ describe("sets a key value", () => {
   test("value is updated in the keyDir if existing kv pair is updated", async () => {
     const db = new TmpDb(DB_FILE);
     await db.initialize();
-    db.set("hello", "test");
+    await db.set("hello", "test");
 
     const val1 = db.keyDir.get("hello");
     const offset1 = val1?.readUInt32LE(8);
@@ -125,12 +132,45 @@ describe("sets a key value", () => {
     // so value offset should be HEADER_SIZE + 5 bytes ("hello")
     expect(offset1).toEqual(17);
 
-    db.set("hello", "updated value");
+    await db.set("hello", "updated value");
     const val2 = db.keyDir.get("hello");
-    const offset2 = val2?.readUInt32LE(8);
-    // after appending to the file, the offset of the "hello" key
-    // should now be 21 (previous record size) + 17 (HEADER_SIZE + 5 bytes for "hello")
-    // 38
-    expect(offset2).toEqual(38);
+    expect(val2).toBeDefined();
+    if (val2) {
+      const offset2 = decodeKeyDirEntry(val2).valueOffset;
+      // after appending to the file, the offset of the "hello" key
+      // should now be 21 (previous record size) + 17 (HEADER_SIZE + 5 bytes for "hello")
+      // 38
+      expect(offset2).toEqual(38);
+    }
+  });
+});
+
+describe("gets a value", () => {
+  test("returns value if key exists", async () => {
+    const db = new TmpDb(DB_FILE);
+    await db.initialize();
+    await db.set("hello", "get test");
+
+    const val = await db.get("hello");
+    expect(val).toEqual("get test");
+  });
+
+  test("returns null if key not found", async () => {
+    const db = new TmpDb(DB_FILE);
+    await db.initialize();
+    await db.set("hello", "get test");
+    const val = await db.get("bye");
+    expect(val).toBeNull();
+  });
+
+  test("returns the new value if a key is updated", async () => {
+    const db = new TmpDb(DB_FILE);
+    await db.initialize();
+    await db.set("hello", "get test");
+    const val1 = await db.get("hello");
+    expect(val1).toEqual("get test");
+    await db.set("hello", "updated");
+    const val2 = await db.get("hello");
+    expect(val2).toEqual("updated");
   });
 });
