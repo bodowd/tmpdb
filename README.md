@@ -6,7 +6,7 @@ as a temorary cache that writes and gets values to and from disk.
 It can be an option if an application needs to store key value pairs where the
 values are stored on disk where there may be more room than in memory.
 
-However, it uses a hash map to map keys to the values stored on disk, so
+It uses a hash map to map keys to the values stored on disk, so
 tmpdb needs to keep all the keys in memory.
 
 The motivation behind it was to use this as a cache in something like a AWS Lambda
@@ -15,14 +15,10 @@ AWS Lambda functions allow access to the `/tmp` directory and it supports up to
 10 GB of ephemeral storage[[2]]. tmpdb could use this directory to store a database
 file.
 
-tmpdb handles writing key value pairs to disk and finding these records later through
-a simple API.
-
 ## Acknowledgements
 
 The bitcask[[1]] paper describes "a Log-Structured Hash Table for Fast Key/Value Data",
-and tmpdb is implemented following this paper, and also by looking at go-caskdb[[3]]
-for inspiration and guidance.
+tmpdb is implemented following this paper, and also heavily inspired by go-caskdb[[3]]
 
 ## How does it work
 
