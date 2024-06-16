@@ -119,7 +119,6 @@ export class TmpDb {
         byteCount += res.record.byteLength;
 
         if (byteCount > BYTE_LENGTH) {
-          console.log("FLUSH");
           await this.file.sync();
           for (const p of pendingKeyDirEntries) {
             this.keyDir.set(p.key, p.kdEntry);
