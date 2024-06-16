@@ -5,6 +5,7 @@ paper. It is designed to just serve as a temorary cache that writes values to di
 rather than just store data in memory. Currently, it does not support features
 that a more long term storage would need, like merging and compaction of database
 files, since tmpdb is not intended for long term storage, it's just a temporary cache.
+It also only supports a couple functions from the bitcask API.
 
 The motivation behind it was to use this as a cache in memory-constrained
 environments, namely in an AWS Lambda function.
@@ -54,6 +55,12 @@ More details on how the file format and hash table format can be found in `forma
 I haven't worked on distributing this package yet. But if you want to use it now,
 just copy the code into your code.
 
+## API
+
+`set(key: string, value: string): Promise<void>`
+`setMany(kvPairs: KV[]): Promise<void>`
+`get(key: string): Promise<null | void | string>`
+
 ## Usage
 
 ```js
@@ -100,9 +107,19 @@ You can find a script in `/measurement` which does some timing on how fast
 it is to write records and get records. You can try it out on your computer
 to see how it performs for you.
 
-### what about using sqlite to be the cache?
+On some quick tests, I found this implementation can write a record in ~6 ms and
+read a record in <0.1 ms. Using the `setMany` function, which accumulates the writes in
+memory until a limit before flushing to disk, this can get to an average write per record
+of ~0.05 ms.
 
-I'm curious how tmpdb compares to using sqlite. Experiments in progress
+This seems consistent with what was reported in the bitcask paper.
+
+I was curious about how sqlite would perform. I created a table with a key column and a value
+column, and then created an index on key. I also used Prisma as an ORM in the tests.
+I saw an average of ~20 ms writes per record and ~0.3 ms reads. The times did
+not shift beyond random noise (from a quick glance) between 100 to 100000 records.
+
+But you should test it out on your data and machine to see how it works for you.
 
 [1]: https://riak.com/assets/bitcask-intro.pdf
 [2]: https://aws.amazon.com/blogs/aws/aws-lambda-now-supports-up-to-10-gb-ephemeral-storage/
