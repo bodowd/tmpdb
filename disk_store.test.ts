@@ -43,7 +43,8 @@ const checkDisk = async (
 // make a dummy file that can be used for tests
 beforeAll(async () => {
   // a+ - open for reading and appending and  create if not existing yet
-  await fs.open("./tmp/dummyfile.db", "a+");
+  const fd = await fs.open("./tmp/dummyfile.db", "a+");
+  await fd.close();
 });
 
 beforeEach(async () => {
@@ -94,6 +95,8 @@ describe("sets a key value", () => {
     // db file should be 21 bytes now
     const stats = await db.file?.stat();
     expect(stats?.size).toEqual(21);
+
+    await db.file?.close();
   });
 
   test("the corresponding keyDir entry is found", async () => {
@@ -104,6 +107,8 @@ describe("sets a key value", () => {
     expect(db.keyDir.get("found")).toBeDefined();
     // make sure this key is not found
     expect(db.keyDir.get("not found")).toBeUndefined();
+
+    await db.file?.close();
   });
 
   test("database file is appended to", async () => {
@@ -117,6 +122,8 @@ describe("sets a key value", () => {
     await db.set("name", "tmpdb");
     const stats2 = await db.file?.stat();
     expect(stats2?.size).toEqual(42);
+
+    await db.file?.close();
   });
 
   test("value is updated in the keyDir if existing kv pair is updated", async () => {
@@ -141,6 +148,8 @@ describe("sets a key value", () => {
       // 38
       expect(offset2).toEqual(38);
     }
+
+    await db.file?.close();
   });
 });
 
@@ -152,6 +161,8 @@ describe("gets a value", () => {
 
     const val = await db.get("hello");
     expect(val).toEqual("get test");
+
+    await db.file?.close();
   });
 
   test("returns null if key not found", async () => {
@@ -160,6 +171,8 @@ describe("gets a value", () => {
     await db.set("hello", "get test");
     const val = await db.get("bye");
     expect(val).toBeNull();
+
+    await db.file?.close();
   });
 
   test("returns the new value if a key is updated", async () => {
@@ -171,5 +184,29 @@ describe("gets a value", () => {
     await db.set("hello", "updated");
     const val2 = await db.get("hello");
     expect(val2).toEqual("updated");
+
+    await db.file?.close();
+  });
+});
+
+describe("batch set kv pairs", () => {
+  let data: { key: string; value: string }[] = [];
+  for (let i = 0; i < 100; i++) {
+    data.push({ key: i.toString(), value: i.toString() });
+  }
+
+  test("sets in batches successfully", async () => {
+    const db = new TmpDb(DB_FILE);
+    await db.initialize();
+
+    await db.setMany(data);
+
+    for (const d of data) {
+      const val = await db.get(d.key);
+      if (val) {
+        expect(val).toEqual(d.value);
+      }
+    }
+    await db.file?.close();
   });
 });
