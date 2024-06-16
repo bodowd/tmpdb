@@ -6,10 +6,10 @@
 import { performance } from "node:perf_hooks";
 import { KV } from "../format";
 import { PrismaClient } from "@prisma/client";
-import { calcAvg, cleanUp, genData } from "./util";
+import { calcAvg, genData } from "./util";
 const prisma = new PrismaClient();
 
-const NUM: number = 10000;
+const NUM: number = 100000;
 
 const setData = async (data: KV[]) => {
   let times: number[] = [];
