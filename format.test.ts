@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
 import {
   Header,
@@ -68,12 +68,14 @@ test("encodeRecord", () => {
       value: "world",
       expectedSize: 22,
       expectedValueSize: 5,
+      expectedValueOffset: 17,
     },
     {
       timestamp: 20,
       key: "system:node",
       value: "2",
       expectedSize: 24,
+      expectedValueOffset: 23,
       expectedValueSize: 1,
     },
     // smiley face is 4 bytes
@@ -82,14 +84,16 @@ test("encodeRecord", () => {
       key: "😊",
       value: "happy",
       expectedSize: 21,
+      expectedValueOffset: 16,
       expectedValueSize: 5,
     },
   ];
 
   for (const t of tests) {
-    const record = encodeRecord(t.timestamp, t.key, t.value);
-    expect(record.buffer.length).toEqual(t.expectedSize);
-    expect(record.valueSize).toEqual(t.expectedValueSize);
+    const result = encodeRecord(t.timestamp, t.key, t.value);
+    expect(result.record.length).toEqual(t.expectedSize);
+    expect(result.valueOffset).toEqual(t.expectedValueOffset);
+    expect(result.valueSize).toEqual(t.expectedValueSize);
   }
 });
 
