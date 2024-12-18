@@ -1,19 +1,17 @@
 # tmpdb
 
 tmpdb is an embedded key-value store for NodeJS. It is based off the bitcask[[1]]
-paper, but offers more limited functionality because it is intended to just serve
-as a temorary cache that writes and gets values to and from disk.
-It can be an option if an application needs to store key value pairs where the
-values are stored on disk where there may be more room than in memory.
-
-It uses a hash map to map keys to the values stored on disk, so
-tmpdb needs to keep all the keys in memory.
+paper, but offers more limited functionality.
+tmpdb can be an option for storing data temporarily on disk.
 
 The motivation behind it was to use this as a cache in something like a AWS Lambda
 function which is short lived.
 AWS Lambda functions allow access to the `/tmp` directory and it supports up to
 10 GB of ephemeral storage[[2]]. tmpdb could use this directory to store a database
 file.
+
+tmpdb uses a hash map to map keys to the values stored on disk, so
+there needs to be enough memory to keep all the keys in memory.
 
 ## Acknowledgements
 
@@ -55,7 +53,9 @@ just copy the code into your code.
 ## API
 
 `set(key: string, value: string): Promise<void>`
+
 `setMany(kvPairs: KV[]): Promise<void>`
+
 `get(key: string): Promise<null | void | string>`
 
 ## Usage
